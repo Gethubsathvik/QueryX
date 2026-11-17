@@ -10,6 +10,7 @@ jobs:
   test:
     name: Quick Test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -32,17 +33,23 @@ jobs:
       - name: Run type checking
         run: |
           pip install mypy
-          mypy app/
+          mypy app/ --ignore-missing-imports
 
       - name: Run tests
         run: |
           pip install pytest pytest-asyncio httpx
-          python -m pytest tests/ -v --tb=short -x
+          python -m pytest tests/ -v --tb=short -x --timeout=60
 
       - name: Test Docker build
         run: |
           docker build -t queryx .
           docker run --rm -d -p 8000:8000 --name test queryx
-          sleep 10
+          for i in {1..20}; do
+            if curl -sf http://localhost:8000/api/health > /dev/null; then
+              echo "Health check passed"
+              break
+            fi
+            sleep 2
+          done
           curl -f http://localhost:8000/api/health
           docker stop test

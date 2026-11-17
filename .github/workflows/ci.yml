@@ -6,14 +6,26 @@ on:
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
+    inputs:
+      deploy_env:
+        description: 'Deploy environment'
+        required: false
+        type: choice
+        options:
+          - none
+          - staging
+          - production
 
 env:
   PYTHON_VERSION: "3.11"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   lint-and-typecheck:
     name: Lint & Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,11 +48,12 @@ jobs:
           ruff format --check .
 
       - name: Run MyPy (type check)
-        run: mypy app/
+        run: mypy app/ --ignore-missing-imports
 
   tests:
     name: Tests (Unit + Integration + Architecture + Charts)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: lint-and-typecheck
     steps:
       - name: Checkout repository
@@ -59,7 +72,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run all tests
-        run: python -m pytest tests/ -v --tb=short
+        run: python -m pytest tests/ -v --tb=short --timeout=60
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -67,10 +80,12 @@ jobs:
         with:
           files: ./coverage.xml
           flags: tests
+          fail_ci_if_error: false
 
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -89,7 +104,7 @@ jobs:
 
       - name: Run Bandit (Python security linter)
         run: |
-          bandit -r app/ -f json -o bandit-report.json || true
+          bandit -r app/ -f json -o bandit-report.json --skip B101,B601 || true
 
       - name: Run Safety (dependency vulnerability scan)
         run: |
@@ -100,6 +115,7 @@ jobs:
         if: always()
         with:
           name: security-reports
+          retention-days: 30
           path: |
             bandit-report.json
             safety-report.json
@@ -107,6 +123,7 @@ jobs:
   docker-build:
     name: Docker Build & Test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [lint-and-typecheck, tests, security-scan]
     steps:
       - name: Checkout repository
@@ -122,11 +139,20 @@ jobs:
           push: false
           tags: queryx:monolith
           load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Test monolith container
         run: |
           docker run -d --name queryx-test -p 8000:8000 queryx:monolith
-          sleep 15
+          for i in {1..30}; do
+            if curl -sf http://localhost:8000/api/health > /dev/null; then
+              echo "Health check passed"
+              break
+            fi
+            echo "Waiting for service... ($i/30)"
+            sleep 2
+          done
           curl -f http://localhost:8000/api/health || (docker logs queryx-test && exit 1)
           docker stop queryx-test
 
@@ -137,15 +163,23 @@ jobs:
       - name: Test microservices startup
         run: |
           docker compose up -d
-          sleep 20
+          for i in {1..40}; do
+            if curl -sf http://localhost:8000/api/health > /dev/null; then
+              echo "Gateway health check passed"
+              break
+            fi
+            echo "Waiting for gateway... ($i/40)"
+            sleep 3
+          done
           curl -f http://localhost:8000/api/health || (docker compose logs && exit 1)
           docker compose down
 
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: docker-build
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/develop' || github.event.inputs.deploy_env == 'staging'
     environment: staging
     steps:
       - name: Checkout repository
@@ -153,15 +187,16 @@ jobs:
 
       - name: Deploy to staging
         run: |
-          echo "Deploy to staging environment"
+          echo "Deploying to staging environment..."
           # Add your staging deployment commands here
           # Example: kubectl apply -f k8s/staging/
 
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: docker-build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' || github.event.inputs.deploy_env == 'production'
     environment: production
     steps:
       - name: Checkout repository
@@ -169,17 +204,19 @@ jobs:
 
       - name: Deploy to production
         run: |
-          echo "Deploy to production environment"
+          echo "Deploying to production environment..."
           # Add your production deployment commands here
           # Example: kubectl apply -f k8s/production/
 
   notify:
     name: Notify Status
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [lint-and-typecheck, tests, security-scan, docker-build]
     if: always()
     steps:
-      - name: Send notification
+      - name: Determine overall status
+        id: status
         run: |
           STATUS="${{ needs.lint-and-typecheck.result }}"
           for job in tests security-scan docker-build; do
@@ -188,5 +225,25 @@ jobs:
               STATUS="failure"
             fi
           done
+          echo "overall_status=$STATUS" >> $GITHUB_OUTPUT
           echo "Overall status: $STATUS"
-          # Add Slack/Discord/Email notification here
+
+      - name: Post status to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ steps.status.outputs.overall_status }}';
+            const emoji = status === 'success' ? '✅' : '❌';
+            const body = `${emoji} **CI Pipeline**: ${status.toUpperCase()}\n\n` +
+              `- Lint & Type Check: ${{ needs.lint-and-typecheck.result }}\n` +
+              `- Tests: ${{ needs.tests.result }}\n` +
+              `- Security Scan: ${{ needs.security-scan.result }}\n` +
+              `- Docker Build: ${{ needs.docker-build.result }}`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

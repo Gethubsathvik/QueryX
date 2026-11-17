@@ -53,7 +53,7 @@ python -m uvicorn app.main:app --reload
 
 **Environment variables (PowerShell):**
 ```powershell
-$env:ANTHROPIC_API_KEY="your_key"     # Enable Claude
+$env:API_KEY="your_key"     # Enable API_KEY
 $env:QUERYX_PORT="8080"               # Custom port
 $env:QUERYX_HOST="0.0.0.0"            # Expose to network
 ```
@@ -94,7 +94,7 @@ python -m uvicorn app.main:app --reload
 
 **Environment variables (bash):**
 ```bash
-export ANTHROPIC_API_KEY="your_key"
+export API_KEY="your_key"
 export QUERYX_PORT=8080
 export QUERYX_HOST=0.0.0.0
 ```
@@ -183,7 +183,7 @@ docker run -p 8000:8000 queryx
 # 🧩 Microservices (needs API key for LLM)
 docker compose up --build
 # Or with API key:
-ANTHROPIC_API_KEY=your_key docker compose up --build
+API_KEY=your_key docker compose up --build
 
 # 🌐 Open browser → http://localhost:8000
 ```
@@ -203,15 +203,15 @@ ANTHROPIC_API_KEY=your_key docker compose up --build
 
 ```bash
 # Linux/macOS
-export ANTHROPIC_API_KEY="your_key"
+export API_KEY="your_key"
 ./scripts/start.sh
 
 # Windows PowerShell
-$env:ANTHROPIC_API_KEY="your_key"
+$env:API_KEY="your_key"
 scripts\start.bat
 
 # Docker
-ANTHROPIC_API_KEY=your_key docker compose up --build
+API_KEY=your_key docker compose up --build
 ```
 
 Now **any question works**, including on your own CSV:
@@ -295,6 +295,71 @@ $$\text{UCL}_{MR} = 3.267\bar{MR}, \quad \text{LCL}_{MR} = 0$$
 
 #### Trapezoidal Integration (AUC calculation)
 $$\int_a^b f(x)dx \approx \sum_{i=1}^{n} \frac{f(x_i) + f(x_{i-1})}{2} (x_i - x_{i-1})$$
+
+### 🤖 ML & NLP Formulas Used in This Project
+
+#### Schema-Aware Prompt Engineering (NL-to-SQL)
+The system constructs a structured prompt with database schema context:
+
+$$\text{Prompt} = \text{SystemPrompt} \oplus \text{SchemaContext} \oplus \text{FewShotExamples} \oplus \text{UserQuestion}$$
+
+Where SchemaContext includes:
+- Table names, columns, types, foreign keys
+- Sample values per column (for categorical)
+- Row counts and statistics
+
+#### SQL Self-Repair Loop (One-Shot)
+On validation failure, the error is fed back to the model:
+
+$$\text{SQL}_{repaired} = \mathcal{M}(\text{Prompt} \oplus \text{FailedSQL} \oplus \text{ErrorMessage})$$
+
+Max iterations: 1 (configurable)
+
+#### Confusion Matrix Metrics (Classification Charts)
+$$\text{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}$$
+$$\text{Precision} = \frac{TP}{TP + FP}$$
+$$\text{Recall (Sensitivity)} = \frac{TP}{TP + FN}$$
+$$\text{Specificity} = \frac{TN}{TN + FP}$$
+$$\text{F1-Score} = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}$$
+
+#### Learning Curve (Model Performance vs Training Size)
+$$\text{Score}(n) = \text{Model}(D_{train}^{(n)}) \text{ evaluated on } D_{val}$$
+
+Plots training/validation score vs. $n$ samples to diagnose bias/variance.
+
+#### ROC Curve (Binary Classification)
+$$\text{TPR}(t) = \frac{TP(t)}{P}, \quad \text{FPR}(t) = \frac{FP(t)}{N}$$
+
+Where $t$ is the decision threshold. AUC = area under TPR vs FPR curve.
+
+#### Precision-Recall Curve (Imbalanced Data)
+$$\text{Precision}(t) = \frac{TP(t)}{TP(t) + FP(t)}, \quad \text{Recall}(t) = \frac{TP(t)}{P}$$
+
+More informative than ROC when positive class is rare.
+
+#### PCA Scree Plot (Variance Explained)
+$$\text{ExplainedVarianceRatio}_i = \frac{\lambda_i}{\sum_{j=1}^{d} \lambda_j}$$
+
+$$\text{CumulativeVariance}_k = \sum_{i=1}^{k} \text{ExplainedVarianceRatio}_i$$
+
+Where $\lambda_i$ are eigenvalues of covariance matrix.
+
+#### Decision Tree Visualization (Recursive Partitioning)
+$$\text{NodeSplit} = \arg\max_{f, t} \left[ G(\text{parent}) - \frac{n_L}{n}G(\text{left}) - \frac{n_R}{n}G(\text{right}) \right]$$
+
+Where $f$ = feature, $t$ = threshold, $G$ = Gini impurity.
+
+#### Control Chart I-MR (Statistical Process Control)
+**Individuals Chart (I):**
+$$\bar{X} = \frac{1}{n}\sum_{i=1}^{n} x_i$$
+$$\text{UCL} = \bar{X} + 2.66 \cdot \overline{MR}, \quad \text{LCL} = \bar{X} - 2.66 \cdot \overline{MR}$$
+
+**Moving Range Chart (MR):**
+$$MR_i = |x_i - x_{i-1}|$$
+$$\overline{MR} = \frac{1}{n-1}\sum_{i=2}^{n} MR_i$$
+$$\text{UCL}_{MR} = 3.267 \cdot \overline{MR}, \quad \text{LCL}_{MR} = 0$$
+
+Constants $2.66 = 3/d_2$, $3.267 = 3 \cdot d_3/d_2$ for $n=2$ subgroups.
 
 ---
 
