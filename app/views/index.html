@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QueryX</title>
+<link rel="stylesheet" href="/views/app.css">
+</head>
+<body>
+<header>
+  <h1>QueryX</h1>
+  <span class="badge" id="engine">engine: …</span>
+  <span class="muted">Ask in plain English, or write your own SQL. Then pick from 40 chart types.</span>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="card">
+      <h2>Data</h2>
+      <div id="schema" class="muted">Loading…</div>
+      <div class="muted small" style="margin-top:6px">Click a table to query it, or a column to insert it.</div>
+    </div>
+    <div class="card">
+      <h2>Upload CSV</h2>
+      <input type="file" id="csv" accept=".csv" aria-label="Upload a CSV file">
+      <div id="uploadMsg" class="muted" style="margin-top:6px"></div>
+    </div>
+    <div class="card">
+      <h2>History</h2>
+      <div id="history" class="muted">Nothing yet.</div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="card">
+      <form class="ask" id="askForm">
+        <input type="text" id="question" placeholder="e.g. Top 5 customers by revenue" maxlength="500" autocomplete="off" aria-label="Your question">
+        <button class="primary" id="askBtn" type="submit">Ask</button>
+      </form>
+      <div class="chips" id="examples"></div>
+    </div>
+
+    <div class="card" id="sqlCard">
+      <div class="row">
+        <h2 style="margin:0"><label for="sql">SQL</label></h2>
+        <span class="muted small">Editable. Read-only: SELECT / WITH only · Ctrl+Enter to run</span>
+      </div>
+      <textarea id="sql" spellcheck="false" rows="6" placeholder="SELECT category, SUM(price) AS total FROM products GROUP BY category"></textarea>
+      <div class="row" style="margin-top:8px">
+        <div class="btns">
+          <button class="primary" id="runBtn" type="button">Run SQL</button>
+          <button id="resetSql" type="button" class="hidden">Reset to generated</button>
+          <button id="copySql" type="button">Copy</button>
+        </div>
+        <span class="muted small" id="explanation"></span>
+      </div>
+      <div id="error" class="error hidden" role="alert"></div>
+    </div>
+
+    <div id="result" class="hidden">
+      <div class="card" id="metricCard">
+        <h2>Result</h2>
+        <div id="metrics" class="metrics"></div>
+      </div>
+
+      <div class="card" id="studio">
+        <div class="row wrap">
+          <h2 style="margin:0">Chart studio</h2>
+          <div class="btns">
+            <button id="galleryBtn" type="button">Chart gallery (40)</button>
+            <button id="pngBtn" type="button">Download PNG</button>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="field"><label for="chartType">Chart type</label><select id="chartType"></select></div>
+          <div id="fields" class="fields"></div>
+          <div id="options" class="fields"></div>
+        </div>
+        <div id="chartMsg" class="muted small" role="status"></div>
+        <div id="plotWrap" class="plotwrap"><div id="plot"></div></div>
+        <ul id="notes" class="notes"></ul>
+      </div>
+
+      <div class="card">
+        <div class="row"><h2 style="margin:0">Rows</h2><button id="csvBtn" type="button">Download CSV</button></div>
+        <div class="tablewrap"><table id="grid"></table></div>
+        <div class="muted" id="meta" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<dialog id="gallery" aria-labelledby="galleryTitle">
+  <div class="dlg-head">
+    <h2 id="galleryTitle">Chart gallery</h2>
+    <button id="galleryClose" type="button" aria-label="Close gallery">Close</button>
+  </div>
+  <div class="dlg-tools">
+    <input type="search" id="gallerySearch" placeholder="Search charts…" aria-label="Search charts">
+    <div id="galleryTabs" class="chips"></div>
+  </div>
+  <div id="galleryList" class="gallery"></div>
+</dialog>
+
+<script src="/views/vendor/plotly.min.js"></script>
+<script src="/views/app.js"></script>
+</body>
+</html>

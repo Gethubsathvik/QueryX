@@ -1,0 +1,48 @@
+# Microservices deployment:  docker compose up --build   ->  http://localhost:8000
+# Only the gateway is published; query, data, history and chart stay on the internal network.
+x-common: &common
+  build: .
+  restart: unless-stopped
+  environment: &env
+    QUERYX_INTERNAL_TOKEN: ${QUERYX_INTERNAL_TOKEN:-dev-internal-token}   # change for real deployments
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    QUERYX_MODEL: ${QUERYX_MODEL:-claude-sonnet-5-5}
+    QUERYX_ENGINE: ${QUERYX_ENGINE:-}
+    DATA_SERVICE_URL: http://data-service:8002
+    HISTORY_SERVICE_URL: http://history-service:8003
+    QUERY_SERVICE_URL: http://query-service:8001
+    CHART_SERVICE_URL: http://chart-service:8004
+    QUERYX_DATA_DIR: /srv/data
+
+services:
+  gateway:
+    <<: *common
+    command: uvicorn services.gateway.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    depends_on: [query-service, data-service, history-service, chart-service]
+
+  query-service:
+    <<: *common
+    command: uvicorn services.query_service.main:app --host 0.0.0.0 --port 8001
+    depends_on: [data-service, history-service]
+
+  data-service:
+    <<: *common
+    command: uvicorn services.data_service.main:app --host 0.0.0.0 --port 8002
+    volumes:
+      - data:/srv/data
+
+  chart-service:
+    <<: *common
+    command: uvicorn services.chart_service.main:app --host 0.0.0.0 --port 8004
+
+  history-service:
+    <<: *common
+    command: uvicorn services.history_service.main:app --host 0.0.0.0 --port 8003
+    volumes:
+      - history:/srv/data
+
+volumes:
+  data:
+  history:

@@ -1,0 +1,48 @@
+name: Quick CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Quick Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run linting
+        run: |
+          pip install ruff
+          ruff check .
+          ruff format --check .
+
+      - name: Run type checking
+        run: |
+          pip install mypy
+          mypy app/
+
+      - name: Run tests
+        run: |
+          pip install pytest pytest-asyncio httpx
+          python -m pytest tests/ -v --tb=short -x
+
+      - name: Test Docker build
+        run: |
+          docker build -t queryx .
+          docker run --rm -d -p 8000:8000 --name test queryx
+          sleep 5
+          curl -f http://localhost:8000/api/health
+          docker stop test
