@@ -34,6 +34,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+          pip install pytest-asyncio
 
       - name: Run tests
         run: python -m pytest tests/ -v --tb=short
