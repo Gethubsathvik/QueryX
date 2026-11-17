@@ -260,6 +260,42 @@ Model configurable via `QUERYX_MODEL` (default: `claude-sonnet-5-5`). See `.env.
 - Decision Tree (Recursive Gini splitting)
 - Control Charts (I-MR with 3-sigma limits)
 
+### 📐 Mathematical Formulas
+
+#### Kernel Density Estimation (KDE)
+$$\hat{f}(x) = \frac{1}{nh} \sum_{i=1}^{n} K\left(\frac{x - x_i}{h}\right)$$
+
+Where:
+- $K(u) = \frac{1}{\sqrt{2\pi}} e^{-\frac{u^2}{2}}$ (Gaussian kernel)
+- $h = 1.06 \hat{\sigma} n^{-1/5}$ (Silverman's rule of thumb)
+
+#### Principal Component Analysis (PCA)
+$$\text{Cov}(X) = \frac{1}{n-1} X^T X$$
+
+Eigenvalues $\lambda$ and eigenvectors $v$ from power iteration:
+$$v_{k+1} = \frac{X^T X v_k}{\|X^T X v_k\|}$$
+$$\lambda = v^T (X^T X) v$$
+
+#### ROC Curve (AUC)
+$$\text{AUC} = \int_0^1 \text{TPR}(FPR) dFPR \approx \sum_{i=1}^{n-1} \frac{(\text{FPR}_{i+1} - \text{FPR}_i)(\text{TPR}_{i+1} + \text{TPR}_i)}{2}$$
+
+#### Precision-Recall Curve
+$$\text{Precision} = \frac{TP}{TP + FP}, \quad \text{Recall} = \frac{TP}{TP + FN}$$
+
+#### Gini Impurity (Decision Tree)
+$$G = 1 - \sum_{i=1}^{C} p_i^2$$
+
+Split criterion: $\Delta G = G_{parent} - \frac{n_{left}}{n}G_{left} - \frac{n_{right}}{n}G_{right}$
+
+#### Control Chart (I-MR) Limits
+$$\bar{X} = \frac{1}{n}\sum x_i, \quad \bar{MR} = \frac{1}{n-1}\sum |x_i - x_{i-1}|$$
+
+$$\text{UCL}_X = \bar{X} + 2.66\bar{MR}, \quad \text{LCL}_X = \bar{X} - 2.66\bar{MR}$$
+$$\text{UCL}_{MR} = 3.267\bar{MR}, \quad \text{LCL}_{MR} = 0$$
+
+#### Trapezoidal Integration (AUC calculation)
+$$\int_a^b f(x)dx \approx \sum_{i=1}^{n} \frac{f(x_i) + f(x_{i-1})}{2} (x_i - x_{i-1})$$
+
 ---
 
 ## 🏗️ Architecture

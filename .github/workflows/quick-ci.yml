@@ -43,6 +43,6 @@ jobs:
         run: |
           docker build -t queryx .
           docker run --rm -d -p 8000:8000 --name test queryx
-          sleep 5
+          sleep 10
           curl -f http://localhost:8000/api/health
           docker stop test
