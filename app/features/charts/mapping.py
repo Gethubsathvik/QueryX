@@ -5,13 +5,19 @@ Rules:
 - A role absent from `requested` is auto-filled from the column types, name hints and cardinality.
 - Required roles that end up empty raise ChartError with a human-readable message.
 """
+
 from __future__ import annotations
 
 from .catalog import ChartSpec, Field, Option
 from .errors import ChartError
 from .table import Table
 
-KIND_WORDS = {"number": "numeric", "date": "date/time", "text": "text", "category": "category"}
+KIND_WORDS = {
+    "number": "numeric",
+    "date": "date/time",
+    "text": "text",
+    "category": "category",
+}
 
 
 def _as_list(value) -> list[str]:
@@ -25,7 +31,9 @@ def _as_list(value) -> list[str]:
 def _auto_pick(f: Field, table: Table, used: set[str]) -> list[str]:
     candidates: list[str] = []
     for kind in f.kinds:  # first kind that has any unused column wins
-        candidates = [c for c in table.columns if c not in used and kind in table.kinds(c)]
+        candidates = [
+            c for c in table.columns if c not in used and kind in table.kinds(c)
+        ]
         if candidates:
             break
     if not candidates:
@@ -48,7 +56,9 @@ def _auto_pick(f: Field, table: Table, used: set[str]) -> list[str]:
     return candidates[: (f.max_auto if f.multiple else 1)]
 
 
-def resolve(spec: ChartSpec, table: Table, requested: dict | None = None) -> dict[str, list[str]]:
+def resolve(
+    spec: ChartSpec, table: Table, requested: dict | None = None
+) -> dict[str, list[str]]:
     requested = requested or {}
     out: dict[str, list[str]] = {}
     used: set[str] = set()
@@ -73,11 +83,14 @@ def resolve(spec: ChartSpec, table: Table, requested: dict | None = None) -> dic
     for f in spec.fields:
         need = f.min_count if f.multiple else 1
         if f.required and len(out[f.role]) < need:
-            kinds = " or ".join(KIND_WORDS[k] for k in f.kinds if k != "category" or len(f.kinds) == 1)
+            kinds = " or ".join(
+                KIND_WORDS[k] for k in f.kinds if k != "category" or len(f.kinds) == 1
+            )
             count = f"at least {need} " if need > 1 else "a "
             raise ChartError(
                 f"{spec.label}: '{f.label}' needs {count}{kinds} column{'s' if need > 1 else ''}, "
-                f"but none is available. Pick one in the field selector, or change your SQL.")
+                f"but none is available. Pick one in the field selector, or change your SQL."
+            )
     return out
 
 
@@ -100,7 +113,11 @@ def parse_options(spec: ChartSpec, raw: dict | None) -> dict:
 def _coerce(o: Option, value):
     try:
         if o.type == "bool":
-            return value if isinstance(value, bool) else str(value).lower() in ("1", "true", "yes", "on")
+            return (
+                value
+                if isinstance(value, bool)
+                else str(value).lower() in ("1", "true", "yes", "on")
+            )
         if o.type == "number":
             v = float(value)
             if o.min is not None:

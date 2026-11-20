@@ -1,4 +1,5 @@
 """Ask controller: HTTP routes and the mapping from domain errors to status codes."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException

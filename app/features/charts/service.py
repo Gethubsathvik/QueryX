@@ -1,4 +1,5 @@
 """Pick a sensible chart type from a query result."""
+
 from __future__ import annotations
 
 import re
@@ -15,8 +16,10 @@ def suggest_chart(columns: list[str], rows: list[list]) -> dict:
         return {"type": "table"}
 
     numeric = [
-        i for i in range(len(columns))
-        if any(_is_num(r[i]) for r in rows) and all(_is_num(r[i]) or r[i] is None for r in rows)
+        i
+        for i in range(len(columns))
+        if any(_is_num(r[i]) for r in rows)
+        and all(_is_num(r[i]) or r[i] is None for r in rows)
     ]
     labels = [i for i in range(len(columns)) if i not in numeric]
 
@@ -27,7 +30,9 @@ def suggest_chart(columns: list[str], rows: list[list]) -> dict:
 
     x = labels[0]
     ys = [columns[i] for i in numeric[:3]]
-    is_time = len(rows) >= 2 and all(isinstance(r[x], str) and DATE_RE.match(r[x]) for r in rows)
+    is_time = len(rows) >= 2 and all(
+        isinstance(r[x], str) and DATE_RE.match(r[x]) for r in rows
+    )
     if is_time:
         return {"type": "line", "x": columns[x], "y": ys}
     if len(rows) <= 25:
@@ -36,10 +41,10 @@ def suggest_chart(columns: list[str], rows: list[list]) -> dict:
 
 
 # ----------------------------------------------------------------------------- chart studio
-from .builders import PALETTE, build  # noqa: E402
-from .catalog import CATALOG, catalog_payload, get_spec  # noqa: E402
-from .mapping import is_compatible, parse_options, resolve  # noqa: E402
-from .table import Table  # noqa: E402
+from .builders import PALETTE, build
+from .catalog import CATALOG, catalog_payload, get_spec
+from .mapping import is_compatible, parse_options, resolve
+from .table import Table
 
 MAX_CHART_ROWS = 5000
 
@@ -59,16 +64,31 @@ class ChartService:
         table = Table(columns, rows[:MAX_CHART_ROWS])
         return [c.id for c in CATALOG if is_compatible(c, table)]
 
-    def build(self, columns: list[str], rows: list[list], chart: str,
-              mapping: dict | None = None, options: dict | None = None) -> dict:
+    def build(
+        self,
+        columns: list[str],
+        rows: list[list],
+        chart: str,
+        mapping: dict | None = None,
+        options: dict | None = None,
+    ) -> dict:
         spec = get_spec(chart)
         table = Table(columns, rows[:MAX_CHART_ROWS])
         if not len(table):
             from .errors import ChartError
-            raise ChartError("The query returned no rows, so there is nothing to chart.")
+
+            raise ChartError(
+                "The query returned no rows, so there is nothing to chart."
+            )
         resolved = resolve(spec, table, mapping)
         opts = parse_options(spec, options)
         figure = build(chart, table, resolved, opts)
-        return {"chart": chart, "label": spec.label, "mapping": resolved, "options": opts,
-                "figure": {"data": figure["data"], "layout": figure["layout"]}, "notes": figure["notes"],
-                "truncated": len(rows) > MAX_CHART_ROWS}
+        return {
+            "chart": chart,
+            "label": spec.label,
+            "mapping": resolved,
+            "options": opts,
+            "figure": {"data": figure["data"], "layout": figure["layout"]},
+            "notes": figure["notes"],
+            "truncated": len(rows) > MAX_CHART_ROWS,
+        }

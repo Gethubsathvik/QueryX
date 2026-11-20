@@ -17,6 +17,7 @@ class EvilGenerator:
 
 class FlakyGenerator:
     """First query references a bad column; the repair fixes it."""
+
     name = "flaky"
 
     def generate(self, question, schema_text):
@@ -32,7 +33,11 @@ def client(tmp_path):
 
 
 def test_health_and_schema(client):
-    assert client.get("/api/health").json() == {"status": "ok", "engine": "demo", "mode": "monolith"}
+    assert client.get("/api/health").json() == {
+        "status": "ok",
+        "engine": "demo",
+        "mode": "monolith",
+    }
     names = [t["name"] for t in client.get("/api/schema").json()["tables"]]
     assert "orders" in names
 
@@ -51,7 +56,9 @@ def test_ask_returns_sql_rows_and_chart(client):
 
 
 def test_ask_top_n(client):
-    body = client.post("/api/ask", json={"question": "top 3 customers by revenue"}).json()
+    body = client.post(
+        "/api/ask", json={"question": "top 3 customers by revenue"}
+    ).json()
     assert body["row_count"] == 3 and body["chart"]["type"] == "bar"
 
 
@@ -79,10 +86,18 @@ def test_failed_sql_is_repaired_once(tmp_path):
 
 
 def test_upload_then_schema_and_history(client):
-    r = client.post("/api/upload", files={"file": ("sales.csv", b"region,units\nN,3\nS,5\n", "text/csv")})
+    r = client.post(
+        "/api/upload",
+        files={"file": ("sales.csv", b"region,units\nN,3\nS,5\n", "text/csv")},
+    )
     assert r.status_code == 200 and r.json()["table"] == "sales"
     assert "sales" in [t["name"] for t in client.get("/api/schema").json()["tables"]]
-    assert client.post("/api/upload", files={"file": ("x.txt", b"hi", "text/plain")}).status_code == 400
+    assert (
+        client.post(
+            "/api/upload", files={"file": ("x.txt", b"hi", "text/plain")}
+        ).status_code
+        == 400
+    )
 
     client.post("/api/ask", json={"question": "Orders by status"})
     items = client.get("/api/history").json()["items"]
@@ -94,10 +109,19 @@ def test_manual_sql_runs_through_the_same_safety_pipeline(client):
     r = client.post("/api/sql", json={"sql": "SELECT COUNT(*) AS n FROM customers"})
     assert r.status_code == 200
     body = r.json()
-    assert body["engine"] == "manual" and body["rows"] == [[250]] and body["chart"]["type"] == "metric"
+    assert (
+        body["engine"] == "manual"
+        and body["rows"] == [[250]]
+        and body["chart"]["type"] == "metric"
+    )
     assert client.post("/api/sql", json={"sql": "DROP TABLE orders"}).status_code == 400
-    assert client.post("/api/sql", json={"sql": "SELECT * FROM sqlite_master"}).status_code in (400, 422)
-    assert client.post("/api/sql", json={"sql": "SELECT nope FROM orders"}).status_code == 422
+    assert client.post(
+        "/api/sql", json={"sql": "SELECT * FROM sqlite_master"}
+    ).status_code in (400, 422)
+    assert (
+        client.post("/api/sql", json={"sql": "SELECT nope FROM orders"}).status_code
+        == 422
+    )
     assert client.post("/api/sql", json={"sql": "   "}).status_code in (422,)
     assert client.post("/api/sql", json={"sql": ""}).status_code == 422
 
@@ -111,9 +135,17 @@ def test_manual_sql_is_logged_in_history(client):
 def test_chart_endpoints(client):
     cat = client.get("/api/charts").json()
     assert len(cat["charts"]) == 40
-    r = client.post("/api/chart", json={"columns": ["c", "v"], "rows": [["a", 1], ["b", 2]], "chart": "bar"})
+    r = client.post(
+        "/api/chart",
+        json={"columns": ["c", "v"], "rows": [["a", 1], ["b", 2]], "chart": "bar"},
+    )
     assert r.status_code == 200 and r.json()["figure"]["data"][0]["type"] == "bar"
-    bad = client.post("/api/chart", json={"columns": ["c"], "rows": [["a"]], "chart": "histogram"})
+    bad = client.post(
+        "/api/chart", json={"columns": ["c"], "rows": [["a"]], "chart": "histogram"}
+    )
     assert bad.status_code == 422 and "numeric" in bad.json()["detail"]
-    ok = client.post("/api/charts/compatible", json={"columns": ["c", "v"], "rows": [["a", 1], ["b", 2]]})
+    ok = client.post(
+        "/api/charts/compatible",
+        json={"columns": ["c", "v"], "rows": [["a", 1], ["b", 2]]},
+    )
     assert "bar" in ok.json()["compatible"]

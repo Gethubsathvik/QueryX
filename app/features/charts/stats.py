@@ -1,5 +1,6 @@
 """Pure-Python statistics used by the chart builders (no numpy, so it runs anywhere,
 including Termux on Android). Inputs are small (a query result is capped at a few hundred rows)."""
+
 from __future__ import annotations
 
 import math
@@ -39,7 +40,9 @@ def silverman_bandwidth(xs: Sequence[float]) -> float:
     return 0.9 * sigma * len(s) ** -0.2
 
 
-def gaussian_kde(xs: Sequence[float], n_points: int = 200) -> tuple[list[float], list[float]]:
+def gaussian_kde(
+    xs: Sequence[float], n_points: int = 200
+) -> tuple[list[float], list[float]]:
     """Gaussian kernel density estimate on an evenly spaced grid."""
     xs = list(xs)
     if len(xs) > 2000:  # deterministic thinning keeps this O(grid * 2000)
@@ -93,7 +96,9 @@ def correlation_matrix(columns: Sequence[Sequence[float]]) -> list[list[float | 
     return out
 
 
-def jacobi_eigenvalues(matrix: Sequence[Sequence[float]], tol: float = 1e-12, max_sweeps: int = 100) -> list[float]:
+def jacobi_eigenvalues(
+    matrix: Sequence[Sequence[float]], tol: float = 1e-12, max_sweeps: int = 100
+) -> list[float]:
     """Eigenvalues of a small symmetric matrix by cyclic Jacobi rotations, sorted descending."""
     n = len(matrix)
     a = [list(map(float, row)) for row in matrix]
@@ -106,7 +111,9 @@ def jacobi_eigenvalues(matrix: Sequence[Sequence[float]], tol: float = 1e-12, ma
                 if abs(a[p][q]) < 1e-15:
                     continue
                 theta = (a[q][q] - a[p][p]) / (2.0 * a[p][q])
-                t = (1.0 if theta >= 0 else -1.0) / (abs(theta) + math.sqrt(theta * theta + 1.0))
+                t = (1.0 if theta >= 0 else -1.0) / (
+                    abs(theta) + math.sqrt(theta * theta + 1.0)
+                )
                 c = 1.0 / math.sqrt(t * t + 1.0)
                 s = t * c
                 for k in range(n):
@@ -124,7 +131,9 @@ def _sorted_by_score(y_true: Sequence[bool], scores: Sequence[float]):
     return sorted(zip(scores, y_true), key=lambda t: -t[0])
 
 
-def roc_curve(y_true: Sequence[bool], scores: Sequence[float]) -> tuple[list[float], list[float], float]:
+def roc_curve(
+    y_true: Sequence[bool], scores: Sequence[float]
+) -> tuple[list[float], list[float], float]:
     """ROC points (fpr, tpr) and the trapezoidal AUC. Tied scores share one threshold."""
     positives = sum(1 for y in y_true if y)
     negatives = len(y_true) - positives
@@ -142,11 +151,15 @@ def roc_curve(y_true: Sequence[bool], scores: Sequence[float]) -> tuple[list[flo
         fpr.append(fp / negatives)
         tpr.append(tp / positives)
         i = j
-    auc = sum((fpr[k] - fpr[k - 1]) * (tpr[k] + tpr[k - 1]) / 2 for k in range(1, len(fpr)))
+    auc = sum(
+        (fpr[k] - fpr[k - 1]) * (tpr[k] + tpr[k - 1]) / 2 for k in range(1, len(fpr))
+    )
     return fpr, tpr, auc
 
 
-def pr_curve(y_true: Sequence[bool], scores: Sequence[float]) -> tuple[list[float], list[float], float]:
+def pr_curve(
+    y_true: Sequence[bool], scores: Sequence[float]
+) -> tuple[list[float], list[float], float]:
     """Precision-recall points and average precision (step-wise, as in scikit-learn)."""
     positives = sum(1 for y in y_true if y)
     if positives == 0 or positives == len(y_true):

@@ -2,6 +2,7 @@
 
 Exposes the same methods as DataService, so AskService does not care which one it gets.
 """
+
 from __future__ import annotations
 
 import httpx
@@ -33,7 +34,11 @@ class RemoteDataClient:
         r = self._request("POST", "/internal/execute", json={"sql": sql})
         if r.status_code == 200:
             return r.json()
-        detail = r.json().get("detail", "") if r.headers.get("content-type", "").startswith("application/json") else ""
+        detail = (
+            r.json().get("detail", "")
+            if r.headers.get("content-type", "").startswith("application/json")
+            else ""
+        )
         if r.status_code == 400:
             raise UnsafeSQLError(detail)
         if r.status_code == 408:

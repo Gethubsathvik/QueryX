@@ -114,15 +114,15 @@ index.html
 ```python
 @dataclass
 class ChartMeta:
-    id: str                    # "bar", "line", etc.
-    name: str                  # "Bar Chart"
-    category: str              # "compare", "distribution", etc.
-    description: str           # Human-readable description
-    required_encodings: list   # ["x", "y"]
-    optional_encodings: list   # ["color", "facet", "size"]
-    options: list              # ["stacked", "horizontal", "normalize"]
-    example_sql: str           # Working example
-    palette: str               # "categorical", "sequential", "diverging"
+    id: str  # "bar", "line", etc.
+    name: str  # "Bar Chart"
+    category: str  # "compare", "distribution", etc.
+    description: str  # Human-readable description
+    required_encodings: list  # ["x", "y"]
+    optional_encodings: list  # ["color", "facet", "size"]
+    options: list  # ["stacked", "horizontal", "normalize"]
+    example_sql: str  # Working example
+    palette: str  # "categorical", "sequential", "diverging"
 ```
 
 ### Visual Encoding Rules
@@ -167,6 +167,7 @@ def build_chart(
 class AskRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=2000)
 
+
 # Response
 class AskResponse(BaseModel):
     sql: str
@@ -182,10 +183,11 @@ class AskResponse(BaseModel):
 ### Error Responses
 ```python
 class ErrorResponse(BaseModel):
-    error: str                    # Machine-readable code
-    message: str                  # Human-readable
-    details: dict | None = None   # Validation details
-    request_id: str               # For tracing
+    error: str  # Machine-readable code
+    message: str  # Human-readable
+    details: dict | None = None  # Validation details
+    request_id: str  # For tracing
+
 
 # HTTP Status Codes
 # 400 - Validation/Safety error

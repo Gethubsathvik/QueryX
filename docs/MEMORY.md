@@ -170,10 +170,11 @@ class DataClient:
     def __init__(self, base_url: str, token: str):
         self._client = httpx.AsyncClient(base_url=base_url)
         self._headers = {"X-Internal-Token": token}
-    
+
     async def execute(self, sql: str) -> QueryResult:
-        resp = await self._client.post("/internal/execute", 
-            json={"sql": sql}, headers=self._headers)
+        resp = await self._client.post(
+            "/internal/execute", json={"sql": sql}, headers=self._headers
+        )
         return QueryResult(**resp.json())
 ```
 
@@ -182,6 +183,7 @@ class DataClient:
 # app/features/data/service.py
 class DataRepository(Protocol):
     async def query(self, sql: str) -> QueryResult: ...
+
 
 class DataService:
     def __init__(self, repo: DataRepository):
@@ -194,12 +196,15 @@ class DataService:
 CHART_BUILDERS: dict[str, ChartBuilder] = {}
 CHART_METADATA: dict[str, ChartMeta] = {}
 
+
 def register_chart(id: str, builder: ChartBuilder, meta: ChartMeta):
     CHART_BUILDERS[id] = builder
     CHART_METADATA[id] = meta
 
+
 # In each builder file:
 from .catalog import register_chart
+
 register_chart("bar", build_bar, ChartMeta(...))
 ```
 

@@ -1,7 +1,8 @@
 """Chart service (port 8004): stateless. Turns a query result into a Plotly figure.
 
-    python -m uvicorn services.chart_service.main:app --port 8004
+python -m uvicorn services.chart_service.main:app --port 8004
 """
+
 from __future__ import annotations
 
 from fastapi import FastAPI

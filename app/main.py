@@ -1,7 +1,8 @@
 """Monolith composition root: wires every feature together in one process.
 
-    python -m uvicorn app.main:app
+python -m uvicorn app.main:app
 """
+
 from __future__ import annotations
 
 from pathlib import Path

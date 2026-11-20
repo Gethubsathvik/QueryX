@@ -1,7 +1,8 @@
 """History service (port 8003): owns the query-history database.
 
-    python -m uvicorn services.history_service.main:app --port 8003
+python -m uvicorn services.history_service.main:app --port 8003
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -14,7 +15,9 @@ from app.features.history.repository import History
 from app.features.history.service import HistoryService
 
 
-def create_app(data_dir: Path | str | None = None, internal_token: str | None = None) -> FastAPI:
+def create_app(
+    data_dir: Path | str | None = None, internal_token: str | None = None
+) -> FastAPI:
     settings = Settings.from_env(data_dir)
     token = settings.internal_token if internal_token is None else internal_token
     settings.data_dir.mkdir(parents=True, exist_ok=True)

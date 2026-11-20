@@ -193,7 +193,7 @@ CHART_METADATA = {
         required_encodings=["x", "y"],
         optional_encodings=["color", "facet"],
         options=["stacked", "horizontal"],
-        example_sql="SELECT category, SUM(value) FROM sales GROUP BY category"
+        example_sql="SELECT category, SUM(value) FROM sales GROUP BY category",
     ),
     # ...
 }

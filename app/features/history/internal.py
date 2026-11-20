@@ -1,4 +1,5 @@
 """Internal (service-to-service) routes of the history feature. Mounted only in microservices mode."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
@@ -16,7 +17,9 @@ class HistoryEntry(BaseModel):
 
 
 def build_internal_router(service: HistoryService, token: str) -> APIRouter:
-    router = APIRouter(prefix="/internal", dependencies=[Depends(require_internal_token(token))])
+    router = APIRouter(
+        prefix="/internal", dependencies=[Depends(require_internal_token(token))]
+    )
 
     @router.post("/history")
     def add(entry: HistoryEntry):

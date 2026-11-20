@@ -1,4 +1,5 @@
 """Tiny persistent query history (separate SQLite file)."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -35,7 +36,9 @@ class History:
         try:
             rows = conn.execute(
                 "SELECT id, question, sql, row_count, engine, created_at FROM history "
-                "ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+                "ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
         finally:
             conn.close()
         keys = ("id", "question", "sql", "row_count", "engine", "created_at")

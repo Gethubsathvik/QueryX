@@ -2,9 +2,9 @@ import json
 
 import pytest
 
-from app.features.data.repository import Database
 from app.evaluate import GOLDEN_PATH, run_eval
 from app.features.ask.generators import DemoGenerator, GeneratedSQL
+from app.features.data.repository import Database
 
 
 @pytest.fixture()

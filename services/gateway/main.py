@@ -5,6 +5,7 @@ Serves the UI and routes /api/* to the right internal service. Internal endpoint
 
     python -m uvicorn services.gateway.main:app --port 8000
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -55,26 +56,46 @@ def create_app(upstreams: dict[str, httpx.AsyncClient] | None = None) -> FastAPI
             except (httpx.HTTPError, ValueError):
                 return name, {"status": "down"}
 
-        results = dict(await asyncio.gather(*(probe(n, c) for n, c in upstreams.items())))
+        results = dict(
+            await asyncio.gather(*(probe(n, c) for n, c in upstreams.items()))
+        )
         ok = all(v.get("status") == "ok" for v in results.values())
-        return {"status": "ok" if ok else "degraded", "mode": "microservices", "services": results}
+        return {
+            "status": "ok" if ok else "degraded",
+            "mode": "microservices",
+            "services": results,
+        }
 
     @app.api_route("/api/{path:path}", methods=["GET", "POST"])
     async def proxy(path: str, request: Request):
         full = "/api/" + path
-        target = next((svc for prefix, svc in ROUTES if full == prefix or full.startswith(prefix + "/")), None)
+        target = next(
+            (
+                svc
+                for prefix, svc in ROUTES
+                if full == prefix or full.startswith(prefix + "/")
+            ),
+            None,
+        )
         if target is None:
             return JSONResponse({"detail": "Not found"}, status_code=404)
-        headers = {k: v for k in ("content-type", "accept") if (v := request.headers.get(k))}
+        headers = {
+            k: v for k in ("content-type", "accept") if (v := request.headers.get(k))
+        }
         url = full + (f"?{request.url.query}" if request.url.query else "")
         try:
             r = await upstreams[target].request(
-                request.method, url, content=await request.body(), headers=headers)
+                request.method, url, content=await request.body(), headers=headers
+            )
         except httpx.HTTPError:
-            return JSONResponse({"detail": f"{target} service unavailable"}, status_code=503)
+            return JSONResponse(
+                {"detail": f"{target} service unavailable"}, status_code=503
+            )
         return Response(
-            content=r.content, status_code=r.status_code,
-            headers={"content-type": r.headers.get("content-type", "application/json")})
+            content=r.content,
+            status_code=r.status_code,
+            headers={"content-type": r.headers.get("content-type", "application/json")},
+        )
 
     @app.get("/")
     def index():

@@ -4,6 +4,7 @@
 - DemoGenerator: offline rule-based engine for the sample database, so the app works
   with zero setup and tests run without network access.
 """
+
 from __future__ import annotations
 
 import json
@@ -65,66 +66,86 @@ class DemoGenerator:
                 f"SELECT c.name AS customer, ROUND({_REV}, 2) AS revenue "
                 f"{_JOIN_ITEMS} JOIN customers c ON c.id = o.customer_id "
                 f"WHERE o.status = 'completed' GROUP BY c.id, c.name ORDER BY revenue DESC LIMIT {n}",
-                f"Top {n} customers ranked by revenue from completed orders.")
+                f"Top {n} customers ranked by revenue from completed orders.",
+            )
         if re.search(r"(top|best)\s*\d*\s*products", q):
             n = _top_n(q)
             return GeneratedSQL(
                 f"SELECT p.name AS product, ROUND({_REV}, 2) AS revenue "
                 f"{_JOIN_ITEMS} JOIN products p ON p.id = oi.product_id "
                 f"WHERE o.status = 'completed' GROUP BY p.id, p.name ORDER BY revenue DESC LIMIT {n}",
-                f"Top {n} products ranked by revenue from completed orders.")
-        if re.search(r"monthly (revenue|sales)|(revenue|sales) (by|per|each) month|revenue (over time|trend)|sales trend", q):
+                f"Top {n} products ranked by revenue from completed orders.",
+            )
+        if re.search(
+            r"monthly (revenue|sales)|(revenue|sales) (by|per|each) month|revenue (over time|trend)|sales trend",
+            q,
+        ):
             return GeneratedSQL(
                 f"SELECT strftime('%Y-%m', o.order_date) AS month, ROUND({_REV}, 2) AS revenue "
                 f"{_JOIN_ITEMS} WHERE o.status = 'completed' GROUP BY month ORDER BY month",
-                "Revenue per month from completed orders.")
+                "Revenue per month from completed orders.",
+            )
         if re.search(r"(revenue|sales).*categor|categor.*(revenue|sales)", q):
             return GeneratedSQL(
                 f"SELECT p.category AS category, ROUND({_REV}, 2) AS revenue "
                 f"{_JOIN_ITEMS} JOIN products p ON p.id = oi.product_id "
                 f"WHERE o.status = 'completed' GROUP BY p.category ORDER BY revenue DESC",
-                "Revenue per product category from completed orders.")
+                "Revenue per product category from completed orders.",
+            )
         if re.search(r"(revenue|sales).*countr|countr.*(revenue|sales)", q):
             return GeneratedSQL(
                 f"SELECT c.country AS country, ROUND({_REV}, 2) AS revenue "
                 f"{_JOIN_ITEMS} JOIN customers c ON c.id = o.customer_id "
                 f"WHERE o.status = 'completed' GROUP BY c.country ORDER BY revenue DESC",
-                "Revenue per customer country from completed orders.")
+                "Revenue per customer country from completed orders.",
+            )
         if re.search(r"(revenue|sales).*segment|segment.*(revenue|sales)", q):
             return GeneratedSQL(
                 f"SELECT c.segment AS segment, ROUND({_REV}, 2) AS revenue "
                 f"{_JOIN_ITEMS} JOIN customers c ON c.id = o.customer_id "
                 f"WHERE o.status = 'completed' GROUP BY c.segment ORDER BY revenue DESC",
-                "Revenue per customer segment from completed orders.")
+                "Revenue per customer segment from completed orders.",
+            )
         if re.search(r"orders?\s*(by|per)\s*status|order status", q):
             return GeneratedSQL(
                 "SELECT status, COUNT(*) AS orders FROM orders GROUP BY status ORDER BY orders DESC",
-                "Number of orders in each status.")
+                "Number of orders in each status.",
+            )
         if re.search(r"average order value|\baov\b", q):
             return GeneratedSQL(
                 "SELECT ROUND(AVG(order_total), 2) AS average_order_value FROM ("
                 f"SELECT o.id, {_REV} AS order_total {_JOIN_ITEMS} "
                 "WHERE o.status = 'completed' GROUP BY o.id)",
-                "Average total value of a completed order.")
+                "Average total value of a completed order.",
+            )
         if re.search(r"new customers|signups?|customer growth", q):
             return GeneratedSQL(
                 "SELECT strftime('%Y-%m', signup_date) AS month, COUNT(*) AS new_customers "
                 "FROM customers GROUP BY month ORDER BY month",
-                "Number of customers who signed up each month.")
-        if re.search(r"how many customers|number of customers|customer count|total customers", q):
-            return GeneratedSQL("SELECT COUNT(*) AS customers FROM customers",
-                                "Total number of customers.")
+                "Number of customers who signed up each month.",
+            )
+        if re.search(
+            r"how many customers|number of customers|customer count|total customers", q
+        ):
+            return GeneratedSQL(
+                "SELECT COUNT(*) AS customers FROM customers",
+                "Total number of customers.",
+            )
         if re.search(r"how many orders|number of orders|total orders|order count", q):
-            return GeneratedSQL("SELECT COUNT(*) AS orders FROM orders", "Total number of orders.")
+            return GeneratedSQL(
+                "SELECT COUNT(*) AS orders FROM orders", "Total number of orders."
+            )
         if re.search(r"cancel|refund", q):
             return GeneratedSQL(
                 "SELECT status, COUNT(*) AS orders, ROUND(100.0 * COUNT(*) / (SELECT COUNT(*) FROM orders), 1) "
                 "AS percent FROM orders WHERE status IN ('cancelled', 'refunded') GROUP BY status",
-                "Share of orders that were cancelled or refunded.")
+                "Share of orders that were cancelled or refunded.",
+            )
         if re.search(r"total revenue|how much revenue|overall revenue|total sales", q):
             return GeneratedSQL(
                 f"SELECT ROUND({_REV}, 2) AS total_revenue {_JOIN_ITEMS} WHERE o.status = 'completed'",
-                "Total revenue from completed orders.")
+                "Total revenue from completed orders.",
+            )
 
         raise NoAnswer(
             "Demo mode (no ANTHROPIC_API_KEY set) only understands the sample questions, such as: "
@@ -132,7 +153,9 @@ class DemoGenerator:
             + ". Set ANTHROPIC_API_KEY to ask anything about your data."
         )
 
-    def repair(self, question: str, schema_text: str, bad_sql: str, error: str) -> GeneratedSQL:
+    def repair(
+        self, question: str, schema_text: str, bad_sql: str, error: str
+    ) -> GeneratedSQL:
         raise NoAnswer("The demo engine cannot repair queries.")
 
 
@@ -154,7 +177,7 @@ def _parse_json_reply(text: str) -> GeneratedSQL:
     if start == -1 or end == -1:
         raise GenerationError("The model did not return JSON.")
     try:
-        data = json.loads(text[start:end + 1])
+        data = json.loads(text[start : end + 1])
     except json.JSONDecodeError as e:
         raise GenerationError("The model returned malformed JSON.") from e
     sql = data.get("sql")
@@ -174,10 +197,17 @@ class AnthropicGenerator:
         try:
             r = httpx.post(
                 API_URL,
-                headers={"x-api-key": self.api_key, "anthropic-version": ANTHROPIC_VERSION,
-                         "content-type": "application/json"},
-                json={"model": self.model, "max_tokens": 1024, "system": SYSTEM_PROMPT,
-                      "messages": [{"role": "user", "content": user_prompt}]},
+                headers={
+                    "x-api-key": self.api_key,
+                    "anthropic-version": ANTHROPIC_VERSION,
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": self.model,
+                    "max_tokens": 1024,
+                    "system": SYSTEM_PROMPT,
+                    "messages": [{"role": "user", "content": user_prompt}],
+                },
                 timeout=self.timeout,
             )
         except httpx.HTTPError as e:
@@ -185,12 +215,16 @@ class AnthropicGenerator:
         if r.status_code != 200:
             raise GenerationError(f"LLM API returned status {r.status_code}")
         blocks = r.json().get("content", [])
-        return _parse_json_reply("".join(b.get("text", "") for b in blocks if b.get("type") == "text"))
+        return _parse_json_reply(
+            "".join(b.get("text", "") for b in blocks if b.get("type") == "text")
+        )
 
     def generate(self, question: str, schema_text: str) -> GeneratedSQL:
         return self._call(f"Schema:\n{schema_text}\n\nQuestion: {question}")
 
-    def repair(self, question: str, schema_text: str, bad_sql: str, error: str) -> GeneratedSQL:
+    def repair(
+        self, question: str, schema_text: str, bad_sql: str, error: str
+    ) -> GeneratedSQL:
         return self._call(
             f"Schema:\n{schema_text}\n\nQuestion: {question}\n\n"
             f"Your previous SQL failed.\nSQL: {bad_sql}\nSQLite error: {error}\n"

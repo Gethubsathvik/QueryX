@@ -1,4 +1,5 @@
 """Data service: business logic over the repository. No HTTP code here."""
+
 from __future__ import annotations
 
 from .repository import Database
@@ -26,7 +27,9 @@ class DataService:
         Raises UnsafeSQLError, QueryTimeout or QueryError.
         """
         safe_sql = validate_sql(sql, self.db.table_names())
-        result = self.db.run_query(safe_sql, max_rows=self.max_rows, timeout_s=self.timeout_s)
+        result = self.db.run_query(
+            safe_sql, max_rows=self.max_rows, timeout_s=self.timeout_s
+        )
         return {"sql": safe_sql, **result}
 
     def import_csv(self, filename: str, data: bytes) -> dict:

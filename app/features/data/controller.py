@@ -1,4 +1,5 @@
 """Data controller: public HTTP routes for schema and CSV upload."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -15,7 +16,7 @@ def build_router(service: DataService) -> APIRouter:
         return {"tables": service.schema()}
 
     @router.post("/api/upload")
-    async def upload(file: UploadFile = File(...)):
+    async def upload(file: UploadFile = File(...)):  # noqa: B008
         if not (file.filename or "").lower().endswith(".csv"):
             raise HTTPException(400, "Please upload a .csv file.")
         data = await file.read()

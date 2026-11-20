@@ -6,7 +6,7 @@
 
 ---
 
-## 🤖 ML & NLP Formulas Used in This Project
+## 🤖 ML & NLP FORMULAS USED IN THIS PROJECT
 
 ### Schema-Aware Prompt Engineering (NL-to-SQL)
 The system constructs a structured prompt with database schema context:

@@ -1,4 +1,5 @@
 """Shared-secret protection for service-to-service (internal) endpoints."""
+
 from __future__ import annotations
 
 import hmac

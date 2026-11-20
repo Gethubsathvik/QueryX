@@ -1,4 +1,5 @@
 """History service: business logic over the history repository."""
+
 from __future__ import annotations
 
 from .repository import History

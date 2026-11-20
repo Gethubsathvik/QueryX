@@ -6,6 +6,7 @@ Ports: gateway 8000 (public), query 8001, data 8002, history 8003, chart 8004.
 Set QUERYX_HOST=0.0.0.0 to let other devices (e.g. an Android phone) reach the gateway.
 Press Ctrl+C to stop everything.
 """
+
 from __future__ import annotations
 
 import os
@@ -33,19 +34,38 @@ def main() -> int:
     env.setdefault("DATA_SERVICE_URL", "http://127.0.0.1:8002")
     env.setdefault("HISTORY_SERVICE_URL", "http://127.0.0.1:8003")
     env.setdefault("CHART_SERVICE_URL", "http://127.0.0.1:8004")
-    env.setdefault("QUERYX_INTERNAL_TOKEN", "dev-internal-token")  # change for anything beyond local dev
+    env.setdefault(
+        "QUERYX_INTERNAL_TOKEN", "dev-internal-token"
+    )  # change for anything beyond local dev
     public_host = env.get("QUERYX_HOST", "127.0.0.1")
 
     procs: list[subprocess.Popen] = []
     # Treat a termination signal like Ctrl+C so the `finally` block stops every child service.
     if hasattr(signal, "SIGTERM"):
-        signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
+        signal.signal(
+            signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt())
+        )
     try:
         for name, target, port in SERVICES:
-            host = public_host if name == "gateway" else "127.0.0.1"  # internal services stay local
-            procs.append(subprocess.Popen(
-                [sys.executable, "-m", "uvicorn", target, "--host", host, "--port", str(port)],
-                cwd=ROOT, env=env))
+            host = (
+                public_host if name == "gateway" else "127.0.0.1"
+            )  # internal services stay local
+            procs.append(
+                subprocess.Popen(
+                    [
+                        sys.executable,
+                        "-m",
+                        "uvicorn",
+                        target,
+                        "--host",
+                        host,
+                        "--port",
+                        str(port),
+                    ],
+                    cwd=ROOT,
+                    env=env,
+                )
+            )
             print(f"started {name:<8} on http://{host}:{port}")
             time.sleep(0.8)
         print("\nOpen http://localhost:8000  (Ctrl+C to stop)")

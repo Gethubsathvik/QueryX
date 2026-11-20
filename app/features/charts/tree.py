@@ -2,6 +2,7 @@
 
 Pure Python and deterministic. Nodes are plain dicts so the result is easy to test and draw.
 """
+
 from __future__ import annotations
 
 from collections import Counter
@@ -25,7 +26,7 @@ class DecisionTree:
         self.n_features = 0
 
     # ---- fitting ---------------------------------------------------------
-    def fit(self, X: list[list[float]], y: list) -> "DecisionTree":
+    def fit(self, X: list[list[float]], y: list) -> DecisionTree:
         if not X or len(X) != len(y):
             raise ValueError("X and y must be non-empty and the same length")
         self.n_features = len(X[0])
@@ -45,16 +46,30 @@ class DecisionTree:
             for i in idx:
                 counts[target[i]] += 1
             best = max(range(len(counts)), key=lambda k: (counts[k], -k))
-            return {"n": n, "impurity": _gini(counts, n), "counts": counts, "prediction": best}
+            return {
+                "n": n,
+                "impurity": _gini(counts, n),
+                "counts": counts,
+                "prediction": best,
+            }
         vals = [target[i] for i in idx]
         m = sum(vals) / n
-        return {"n": n, "impurity": _variance(sum(vals), sum(v * v for v in vals), n), "mean": m, "prediction": m}
+        return {
+            "n": n,
+            "impurity": _variance(sum(vals), sum(v * v for v in vals), n),
+            "mean": m,
+            "prediction": m,
+        }
 
     def _grow(self, X, target, idx, depth) -> dict:
         node = self._node_stats(target, idx)
         node["depth"] = depth
         node["feature"] = node["threshold"] = node["left"] = node["right"] = None
-        if depth >= self.max_depth or node["impurity"] <= 1e-12 or len(idx) < 2 * self.min_leaf:
+        if (
+            depth >= self.max_depth
+            or node["impurity"] <= 1e-12
+            or len(idx) < 2 * self.min_leaf
+        ):
             return node
         split = self._best_split(X, target, idx, node["impurity"])
         if split is None:
@@ -87,7 +102,10 @@ class DecisionTree:
                     right[target[i]] -= 1
                 else:
                     v = target[i]
-                    left_sum += v; left_sq += v * v; right_sum -= v; right_sq -= v * v
+                    left_sum += v
+                    left_sq += v * v
+                    right_sum -= v
+                    right_sq -= v * v
                 nl, nr = pos + 1, n - pos - 1
                 a, b = X[i][f], X[order[pos + 1]][f]
                 if a == b or nl < self.min_leaf or nr < self.min_leaf:
@@ -95,7 +113,10 @@ class DecisionTree:
                 if self.task == "classification":
                     child = (nl * _gini(left, nl) + nr * _gini(right, nr)) / n
                 else:
-                    child = (nl * _variance(left_sum, left_sq, nl) + nr * _variance(right_sum, right_sq, nr)) / n
+                    child = (
+                        nl * _variance(left_sum, left_sq, nl)
+                        + nr * _variance(right_sum, right_sq, nr)
+                    ) / n
                 gain = parent_impurity - child
                 if gain > 1e-12 and (best is None or gain > best[0] + 1e-12):
                     best = (gain, f, (a + b) / 2)
@@ -105,8 +126,16 @@ class DecisionTree:
     def predict_one(self, row: list[float]):
         node = self.root
         while node["feature"] is not None:
-            node = node["left"] if row[node["feature"]] <= node["threshold"] else node["right"]
-        return self.classes[node["prediction"]] if self.task == "classification" else node["prediction"]
+            node = (
+                node["left"]
+                if row[node["feature"]] <= node["threshold"]
+                else node["right"]
+            )
+        return (
+            self.classes[node["prediction"]]
+            if self.task == "classification"
+            else node["prediction"]
+        )
 
     def score(self, X: list[list[float]], y: list) -> float:
         """Accuracy for classification, R-squared for regression (on the training data)."""
@@ -140,12 +169,20 @@ class DecisionTree:
             if node["feature"] is None:
                 continue
             l, r = node["left"], node["right"]
-            imp[node["feature"]] += node["n"] * node["impurity"] - l["n"] * l["impurity"] - r["n"] * r["impurity"]
+            imp[node["feature"]] += (
+                node["n"] * node["impurity"]
+                - l["n"] * l["impurity"]
+                - r["n"] * r["impurity"]
+            )
         total = sum(imp)
         return [v / total for v in imp] if total > 0 else imp
 
     def majority_label(self, node: dict):
-        return self.classes[node["prediction"]] if self.task == "classification" else node["mean"]
+        return (
+            self.classes[node["prediction"]]
+            if self.task == "classification"
+            else node["mean"]
+        )
 
 
 def looks_categorical(values: list) -> bool:

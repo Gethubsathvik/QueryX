@@ -3,6 +3,7 @@
 For every golden case, the generated SQL and the reference SQL are both executed and
 their result sets compared (order-insensitive, floats rounded).
 """
+
 from __future__ import annotations
 
 from ...core.config import ROOT
@@ -16,7 +17,10 @@ GOLDEN_PATH = ROOT / "eval" / "golden.json"
 def _normalize(rows: list[list]) -> list[tuple]:
     def norm(v):
         return round(v, 2) if isinstance(v, float) else v
-    return sorted((tuple(norm(v) for v in r) for r in rows), key=lambda t: [str(x) for x in t])
+
+    return sorted(
+        (tuple(norm(v) for v in r) for r in rows), key=lambda t: [str(x) for x in t]
+    )
 
 
 def run_eval(db: Database, generator, cases: list[dict]) -> dict:

@@ -1,4 +1,5 @@
 """Application settings, read once from environment variables."""
+
 from __future__ import annotations
 
 import os
@@ -20,7 +21,7 @@ class Settings:
     internal_token: str = ""
 
     @classmethod
-    def from_env(cls, data_dir: Path | str | None = None) -> "Settings":
+    def from_env(cls, data_dir: Path | str | None = None) -> Settings:
         env = os.environ
         return cls(
             data_dir=Path(data_dir or env.get("QUERYX_DATA_DIR") or ROOT / "data"),

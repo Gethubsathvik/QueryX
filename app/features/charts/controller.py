@@ -1,4 +1,5 @@
 """Charts controller: the catalog and the chart-building endpoint."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
@@ -35,7 +36,9 @@ def build_router(service: ChartService) -> APIRouter:
     @router.post("/api/chart")
     def chart(req: ChartRequest):
         try:
-            return service.build(req.columns, req.rows, req.chart, req.mapping, req.options)
+            return service.build(
+                req.columns, req.rows, req.chart, req.mapping, req.options
+            )
         except ChartError as e:
             raise HTTPException(422, str(e)) from e
 

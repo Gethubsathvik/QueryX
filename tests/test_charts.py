@@ -1,10 +1,9 @@
 import json
-import math
 
 import pytest
 
 from app.features.charts import stats
-from app.features.charts.catalog import CATALOG, BY_ID
+from app.features.charts.catalog import BY_ID, CATALOG
 from app.features.charts.errors import ChartError
 from app.features.charts.mapping import parse_options, resolve
 from app.features.charts.service import ChartService, suggest_chart
@@ -13,13 +12,48 @@ from app.features.charts.tree import DecisionTree
 from app.features.data.repository import Database
 from app.features.data.service import DataService
 
-REQUESTED = ["Bar Chart", "Line Chart", "Pie Chart", "Histogram", "Area Chart", "Scatter Plot", "Horizontal Bar Chart",
-             "Doughnut Chart", "Box Plot", "Violin Plot", "Density Plot", "Q-Q Plot", "Error Bar Chart", "Rug Plot",
-             "Stacked Bar Chart", "Grouped Bar Chart", "Bubble Chart", "Heatmap", "Correlation Matrix", "Treemap",
-             "Waterfall Chart", "Funnel Chart", "Radar Chart", "Sunburst Chart", "Sankey Diagram", "Gantt Chart",
-             "Bullet Chart", "Marimekko Chart", "Time-Series Chart", "Candlestick Chart", "OHLC Chart",
-             "Control Chart", "3D Surface Plot", "3D Scatter Plot", "Scree Plot", "ROC Curve",
-             "Precision-Recall Curve", "Confusion Matrix", "Learning Curve", "Decision Tree"]
+REQUESTED = [
+    "Bar Chart",
+    "Line Chart",
+    "Pie Chart",
+    "Histogram",
+    "Area Chart",
+    "Scatter Plot",
+    "Horizontal Bar Chart",
+    "Doughnut Chart",
+    "Box Plot",
+    "Violin Plot",
+    "Density Plot",
+    "Q-Q Plot",
+    "Error Bar Chart",
+    "Rug Plot",
+    "Stacked Bar Chart",
+    "Grouped Bar Chart",
+    "Bubble Chart",
+    "Heatmap",
+    "Correlation Matrix",
+    "Treemap",
+    "Waterfall Chart",
+    "Funnel Chart",
+    "Radar Chart",
+    "Sunburst Chart",
+    "Sankey Diagram",
+    "Gantt Chart",
+    "Bullet Chart",
+    "Marimekko Chart",
+    "Time-Series Chart",
+    "Candlestick Chart",
+    "OHLC Chart",
+    "Control Chart",
+    "3D Surface Plot",
+    "3D Scatter Plot",
+    "Scree Plot",
+    "ROC Curve",
+    "Precision-Recall Curve",
+    "Confusion Matrix",
+    "Learning Curve",
+    "Decision Tree",
+]
 
 
 @pytest.fixture(scope="module")
@@ -33,7 +67,13 @@ def test_catalog_has_every_requested_chart_exactly_once():
     labels = [c.label.lower().replace("-", " ") for c in CATALOG]
     assert len(CATALOG) == len(REQUESTED) == 40 == len(BY_ID)
     for name in REQUESTED:
-        wanted = name.lower().replace("-", " ").replace(" chart", "").replace(" plot", "").replace(" diagram", "")
+        wanted = (
+            name.lower()
+            .replace("-", " ")
+            .replace(" chart", "")
+            .replace(" plot", "")
+            .replace(" diagram", "")
+        )
         wanted = wanted.replace(" curve", "")
         assert any(wanted in l for l in labels), name
 
@@ -69,12 +109,21 @@ def test_empty_result_and_unknown_chart_are_rejected():
 
 def test_options_are_clamped_and_defaults_applied():
     spec = BY_ID["decision_tree"]
-    assert parse_options(spec, {"max_depth": 99, "min_leaf": "x"}) == {"max_depth": 5, "min_leaf": 5}
+    assert parse_options(spec, {"max_depth": 99, "min_leaf": "x"}) == {
+        "max_depth": 5,
+        "min_leaf": 5,
+    }
     assert parse_options(BY_ID["waterfall"], {"total": "false"}) == {"total": False}
 
 
 def test_nan_and_infinity_never_reach_the_figure():
-    rows = [[float("nan"), 1.0], [2.0, float("inf")], [3.0, 4.0], [4.0, 5.0], [5.0, 7.0]]
+    rows = [
+        [float("nan"), 1.0],
+        [2.0, float("inf")],
+        [3.0, 4.0],
+        [4.0, 5.0],
+        [5.0, 7.0],
+    ]
     out = ChartService().build(["x", "y"], rows, "scatter")
     json.dumps(out, allow_nan=False)
 
@@ -88,14 +137,21 @@ def test_sankey_rejects_loops_and_roc_needs_two_classes():
 
 def test_compatible_lists_only_drawable_charts():
     ids = ChartService().compatible(["category", "revenue"], [["a", 1.5], ["b", 2.5]])
-    assert "bar" in ids and "pie" in ids and "candlestick" not in ids and "gantt" not in ids
+    assert (
+        "bar" in ids
+        and "pie" in ids
+        and "candlestick" not in ids
+        and "gantt" not in ids
+    )
 
 
 def test_catalog_payload_is_json_and_describes_fields():
     payload = ChartService().catalog()
     json.dumps(payload)
     assert len(payload["charts"]) == 40 and payload["palette"]
-    assert {"id", "label", "category", "fields", "example_sql", "options"} <= payload["charts"][0].keys()
+    assert {"id", "label", "category", "fields", "example_sql", "options"} <= payload[
+        "charts"
+    ][0].keys()
 
 
 def test_suggest_chart_is_unchanged():
@@ -105,10 +161,14 @@ def test_suggest_chart_is_unchanged():
 
 # ---- statistics -------------------------------------------------------------
 def test_roc_and_pr_on_perfect_and_tied_scores():
-    fpr, tpr, auc = stats.roc_curve([True, True, False, False], [0.9, 0.8, 0.2, 0.1])
+    _fpr, _tpr, auc = stats.roc_curve([True, True, False, False], [0.9, 0.8, 0.2, 0.1])
     assert auc == pytest.approx(1.0)
-    assert stats.roc_curve([True, False], [0.5, 0.5])[2] == pytest.approx(0.5)  # ties share a threshold
-    assert stats.pr_curve([True, True, False, False], [0.9, 0.8, 0.2, 0.1])[2] == pytest.approx(1.0)
+    assert stats.roc_curve([True, False], [0.5, 0.5])[2] == pytest.approx(
+        0.5
+    )  # ties share a threshold
+    assert stats.pr_curve([True, True, False, False], [0.9, 0.8, 0.2, 0.1])[
+        2
+    ] == pytest.approx(1.0)
     with pytest.raises(ValueError):
         stats.roc_curve([True, True], [0.1, 0.2])
 
@@ -116,12 +176,16 @@ def test_roc_and_pr_on_perfect_and_tied_scores():
 def test_jacobi_matches_known_eigenvalues():
     assert stats.jacobi_eigenvalues([[2, 1], [1, 2]]) == pytest.approx([3.0, 1.0])
     corr = stats.correlation_matrix([[1, 2, 3, 4], [2, 4, 6, 8.5], [4, 3, 2, 1]])
-    assert sum(stats.jacobi_eigenvalues(corr)) == pytest.approx(3.0)  # trace is preserved
+    assert sum(stats.jacobi_eigenvalues(corr)) == pytest.approx(
+        3.0
+    )  # trace is preserved
 
 
 def test_kde_integrates_to_about_one_and_pearson_edge_cases():
     xs, ys = stats.gaussian_kde([1, 2, 2, 3, 4, 7])
-    area = sum((ys[i] + ys[i + 1]) / 2 * (xs[i + 1] - xs[i]) for i in range(len(xs) - 1))
+    area = sum(
+        (ys[i] + ys[i + 1]) / 2 * (xs[i + 1] - xs[i]) for i in range(len(xs) - 1)
+    )
     assert area == pytest.approx(1.0, abs=0.02)
     assert stats.pearson([1, 1, 1], [1, 2, 3]) is None
     assert stats.pearson([1, 2, 3], [2, 4, 6]) == pytest.approx(1.0)

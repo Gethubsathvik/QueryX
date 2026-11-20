@@ -1,4 +1,5 @@
 """A small typed view over a query result (columns + rows) used by every chart builder."""
+
 from __future__ import annotations
 
 import datetime as dt
@@ -63,7 +64,9 @@ class Table:
         try:
             return self.columns.index(name)
         except ValueError:
-            raise ChartError(f"Unknown column '{name}'. Available: {', '.join(self.columns)}") from None
+            raise ChartError(
+                f"Unknown column '{name}'. Available: {', '.join(self.columns)}"
+            ) from None
 
     def values(self, name: str) -> list:
         i = self.index(name)
@@ -83,7 +86,11 @@ class Table:
             vals = [v for v in self.values(name) if v is not None]
             if vals and all(isinstance(v, (bool, int, float)) for v in vals):
                 kind = "number"
-            elif vals and all(isinstance(v, str) for v in vals) and all(DATE_RE.match(v.strip()) for v in vals):
+            elif (
+                vals
+                and all(isinstance(v, str) for v in vals)
+                and all(DATE_RE.match(v.strip()) for v in vals)
+            ):
                 kind = "date"
             else:
                 kind = "text"
@@ -96,7 +103,11 @@ class Table:
         if p == "number":
             ks = {"number"}
             vals = [v for v in self.values(name) if v is not None]
-            if vals and all(float(v).is_integer() for v in vals) and self.distinct(name) <= LOW_CARDINALITY:
+            if (
+                vals
+                and all(float(v).is_integer() for v in vals)
+                and self.distinct(name) <= LOW_CARDINALITY
+            ):
                 ks.add("category")
             return frozenset(ks)
         if p == "date":

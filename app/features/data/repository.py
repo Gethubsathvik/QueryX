@@ -1,4 +1,5 @@
 """SQLite access: schema introspection, hardened read-only execution, CSV import."""
+
 from __future__ import annotations
 
 import csv
@@ -44,7 +45,11 @@ def _make_authorizer(allowed: set[str]):
                 return sqlite3.SQLITE_OK
             return sqlite3.SQLITE_DENY
         if action == sqlite3.SQLITE_FUNCTION:
-            return sqlite3.SQLITE_DENY if (arg2 or "").lower() in DENY_FUNCS else sqlite3.SQLITE_OK
+            return (
+                sqlite3.SQLITE_DENY
+                if (arg2 or "").lower() in DENY_FUNCS
+                else sqlite3.SQLITE_OK
+            )
         return sqlite3.SQLITE_DENY
 
     return authorizer
@@ -69,10 +74,14 @@ class Database:
     def ensure_seeded(self) -> None:
         if not self.path.exists():
             seed.build(self.path)
-        seed_analytics.add_missing(self.path)  # non-destructive: only creates missing demo tables
+        seed_analytics.add_missing(
+            self.path
+        )  # non-destructive: only creates missing demo tables
 
     def _ro(self) -> sqlite3.Connection:
-        return sqlite3.connect(f"file:{self.path}?mode=ro", uri=True, check_same_thread=False)
+        return sqlite3.connect(
+            f"file:{self.path}?mode=ro", uri=True, check_same_thread=False
+        )
 
     # ---- schema --------------------------------------------------------
     def table_names(self) -> list[str]:
@@ -94,12 +103,20 @@ class Database:
                 cols = conn.execute(f'PRAGMA table_info("{name}")').fetchall()
                 count = conn.execute(f'SELECT COUNT(*) FROM "{name}"').fetchone()[0]
                 fks = conn.execute(f'PRAGMA foreign_key_list("{name}")').fetchall()
-                out.append({
-                    "name": name,
-                    "row_count": count,
-                    "columns": [{"name": c[1], "type": c[2] or "TEXT", "pk": bool(c[5])} for c in cols],
-                    "foreign_keys": [{"column": f[3], "ref_table": f[2], "ref_column": f[4]} for f in fks],
-                })
+                out.append(
+                    {
+                        "name": name,
+                        "row_count": count,
+                        "columns": [
+                            {"name": c[1], "type": c[2] or "TEXT", "pk": bool(c[5])}
+                            for c in cols
+                        ],
+                        "foreign_keys": [
+                            {"column": f[3], "ref_table": f[2], "ref_column": f[4]}
+                            for f in fks
+                        ],
+                    }
+                )
             return out
         finally:
             conn.close()
@@ -111,16 +128,25 @@ class Database:
             for t in self.schema():
                 col_parts = []
                 for c in t["columns"]:
-                    part = f'{c["name"]} {c["type"]}' + (" PK" if c["pk"] else "")
+                    part = f"{c['name']} {c['type']}" + (" PK" if c["pk"] else "")
                     if c["type"].upper() == "TEXT":
-                        vals = [r[0] for r in conn.execute(
-                            f'SELECT DISTINCT "{c["name"]}" FROM "{t["name"]}" LIMIT 9').fetchall()]
-                        if 0 < len(vals) <= 8 and all(isinstance(v, str) and len(v) < 30 for v in vals):
+                        vals = [
+                            r[0]
+                            for r in conn.execute(
+                                f'SELECT DISTINCT "{c["name"]}" FROM "{t["name"]}" LIMIT 9'
+                            ).fetchall()
+                        ]
+                        if 0 < len(vals) <= 8 and all(
+                            isinstance(v, str) and len(v) < 30 for v in vals
+                        ):
                             part += " values=" + "|".join(sorted(vals))
                     col_parts.append(part)
-                line = f'Table {t["name"]} ({", ".join(col_parts)}) -- {t["row_count"]} rows'
+                line = f"Table {t['name']} ({', '.join(col_parts)}) -- {t['row_count']} rows"
                 if t["foreign_keys"]:
-                    fk = ", ".join(f'{f["column"]} -> {f["ref_table"]}.{f["ref_column"]}' for f in t["foreign_keys"])
+                    fk = ", ".join(
+                        f"{f['column']} -> {f['ref_table']}.{f['ref_column']}"
+                        for f in t["foreign_keys"]
+                    )
                     line += f"; FK: {fk}"
                 lines.append(line)
         finally:
@@ -165,8 +191,13 @@ class Database:
         }
 
     # ---- CSV import ----------------------------------------------------
-    def import_csv(self, filename: str, data: bytes, max_bytes: int = 5_000_000,
-                   max_rows: int = 100_000) -> dict:
+    def import_csv(
+        self,
+        filename: str,
+        data: bytes,
+        max_bytes: int = 5_000_000,
+        max_rows: int = 100_000,
+    ) -> dict:
         if len(data) > max_bytes:
             raise CSVImportError(f"file is larger than {max_bytes // 1_000_000} MB")
         try:
@@ -178,7 +209,7 @@ class Database:
         if len(rows) < 2:
             raise CSVImportError("CSV needs a header row and at least one data row")
 
-        header, body = rows[0], rows[1:max_rows + 1]
+        header, body = rows[0], rows[1 : max_rows + 1]
         cols, seen = [], set()
         for i, h in enumerate(header):
             base = _sanitize(h, f"col_{i + 1}")
@@ -195,14 +226,20 @@ class Database:
             vals = [r[i].strip() for r in body if r[i].strip()]
             if vals and all(re.fullmatch(r"[+-]?\d+", v) for v in vals):
                 types.append("INTEGER")
-            elif vals and all(re.fullmatch(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?", v) for v in vals):
+            elif vals and all(
+                re.fullmatch(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?", v) for v in vals
+            ):
                 types.append("REAL")
             else:
                 types.append("TEXT")
 
         table = _sanitize(Path(filename).stem, "uploaded")
-        if table.startswith("sqlite_") or table.lower() in {t.lower() for t in self.table_names()}:
-            raise CSVImportError(f"a table named '{table}' already exists; rename the file and retry")
+        if table.startswith("sqlite_") or table.lower() in {
+            t.lower() for t in self.table_names()
+        }:
+            raise CSVImportError(
+                f"a table named '{table}' already exists; rename the file and retry"
+            )
 
         def convert(v: str, t: str):
             v = v.strip()
@@ -217,7 +254,12 @@ class Database:
             with conn:
                 conn.execute(f'CREATE TABLE "{table}" ({ddl})')
                 conn.executemany(
-                    f'INSERT INTO "{table}" VALUES ({",".join("?" * width)})', converted)
+                    f'INSERT INTO "{table}" VALUES ({",".join("?" * width)})', converted
+                )
         finally:
             conn.close()
-        return {"table": table, "rows": len(converted), "columns": dict(zip(cols, types))}
+        return {
+            "table": table,
+            "rows": len(converted),
+            "columns": dict(zip(cols, types)),
+        }

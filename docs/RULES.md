@@ -44,12 +44,11 @@ features/<name>/
 ### Type Hints (REQUIRED)
 ```python
 # ✅ GOOD
-async def execute_query(sql: str, params: list[Any] | None = None) -> QueryResult:
-    ...
+async def execute_query(sql: str, params: list[Any] | None = None) -> QueryResult: ...
+
 
 # ❌ BAD
-async def execute_query(sql, params=None):
-    ...
+async def execute_query(sql, params=None): ...
 ```
 
 ### Async/Await
@@ -77,9 +76,11 @@ raise Exception("error")
 class DataRepository(Protocol):
     async def query(self, sql: str) -> QueryResult: ...
 
+
 class DataService:
     def __init__(self, repo: DataRepository):
         self._repo = repo
+
 
 # ❌ BAD - Hardcoded dependencies
 class DataService:
@@ -110,8 +111,8 @@ class DataService:
 
 ### Runtime Limits
 ```python
-MAX_ROWS = 500        # Hard cap, truncation flagged
-QUERY_TIMEOUT = 3.0   # Seconds, query killed
+MAX_ROWS = 500  # Hard cap, truncation flagged
+QUERY_TIMEOUT = 3.0  # Seconds, query killed
 ```
 
 ## 🧪 Testing Rules
@@ -142,22 +143,25 @@ async def test_execute_query_returns_rows_for_valid_select():
     # Arrange
     repo = SQLiteRepository(test_db)
     service = DataService(repo)
-    
+
     # Act
     result = await service.execute("SELECT 1 as x")
-    
+
     # Assert
     assert result.rows == [{"x": 1}]
     assert not result.truncated
 
+
 # ✅ GOOD - Parametrized for multiple cases
-@pytest.mark.parametrize("sql,should_fail", [
-    ("SELECT 1", False),
-    ("DROP TABLE users", True),
-    ("SELECT * FROM unknown", True),
-])
-async def test_validator_rejects_unsafe_sql(sql, should_fail):
-    ...
+@pytest.mark.parametrize(
+    "sql,should_fail",
+    [
+        ("SELECT 1", False),
+        ("DROP TABLE users", True),
+        ("SELECT * FROM unknown", True),
+    ],
+)
+async def test_validator_rejects_unsafe_sql(sql, should_fail): ...
 ```
 
 ### Coverage Targets

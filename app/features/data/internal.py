@@ -1,4 +1,5 @@
 """Internal (service-to-service) routes of the data feature. Mounted only in microservices mode."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -15,7 +16,9 @@ class ExecuteRequest(BaseModel):
 
 
 def build_internal_router(service: DataService, token: str) -> APIRouter:
-    router = APIRouter(prefix="/internal", dependencies=[Depends(require_internal_token(token))])
+    router = APIRouter(
+        prefix="/internal", dependencies=[Depends(require_internal_token(token))]
+    )
 
     @router.get("/schema-text")
     def schema_text():

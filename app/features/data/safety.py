@@ -4,6 +4,7 @@ This is layer 1 (static analysis). Layer 2 lives in db.py: a read-only SQLite
 connection, an authorizer that only permits reads on allow-listed tables,
 a row cap and a query timeout.
 """
+
 from __future__ import annotations
 
 import sqlglot
@@ -11,14 +12,40 @@ from sqlglot import exp
 from sqlglot.errors import ParseError
 
 QUERY_TYPES = tuple(
-    getattr(exp, n) for n in ("Select", "Union", "Intersect", "Except", "Subquery") if hasattr(exp, n)
+    getattr(exp, n)
+    for n in ("Select", "Union", "Intersect", "Except", "Subquery")
+    if hasattr(exp, n)
 )
 DENY_NODES = {
-    "Insert", "Update", "Delete", "Drop", "Create", "Alter", "Command", "Pragma", "Attach",
-    "Detach", "Merge", "TruncateTable", "Set", "Use", "Transaction", "Commit", "Rollback",
-    "Copy", "LoadData", "Into",
+    "Insert",
+    "Update",
+    "Delete",
+    "Drop",
+    "Create",
+    "Alter",
+    "Command",
+    "Pragma",
+    "Attach",
+    "Detach",
+    "Merge",
+    "TruncateTable",
+    "Set",
+    "Use",
+    "Transaction",
+    "Commit",
+    "Rollback",
+    "Copy",
+    "LoadData",
+    "Into",
 }
-DENY_FUNCS = {"load_extension", "readfile", "writefile", "edit", "fts3_tokenizer", "zipfile"}
+DENY_FUNCS = {
+    "load_extension",
+    "readfile",
+    "writefile",
+    "edit",
+    "fts3_tokenizer",
+    "zipfile",
+}
 
 
 class UnsafeSQLError(ValueError):

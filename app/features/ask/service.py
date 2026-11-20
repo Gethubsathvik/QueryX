@@ -6,6 +6,7 @@ in the monolith (in-process objects) and in microservices mode (HTTP clients):
   data:      schema_text(), execute(sql)            (DataService or RemoteDataClient)
   history:   add(question, sql, row_count, engine)  (HistoryService or RemoteHistoryClient)
 """
+
 from __future__ import annotations
 
 from ...core.errors import UpstreamError
@@ -31,7 +32,9 @@ class AskService:
         attempts = 1
         while True:
             try:
-                result = self.data.execute(generated.sql)  # validates, then runs read-only
+                result = self.data.execute(
+                    generated.sql
+                )  # validates, then runs read-only
                 break
             except QueryTimeout:
                 raise
@@ -39,13 +42,17 @@ class AskService:
                 if attempts >= 2:
                     raise QueryError(f"The generated SQL failed to run: {e}") from e
                 try:
-                    generated = self.generator.repair(question, schema_text, generated.sql, str(e))
+                    generated = self.generator.repair(
+                        question, schema_text, generated.sql, str(e)
+                    )
                 except (NoAnswer, GenerationError) as e2:
                     raise QueryError(f"The generated SQL failed to run: {e}") from e2
                 attempts += 1
 
         try:
-            self.history.add(question, result["sql"], result["row_count"], self.generator.name)
+            self.history.add(
+                question, result["sql"], result["row_count"], self.generator.name
+            )
         except UpstreamError:
             pass  # history is best-effort; never fail an answer because of it
 
@@ -68,14 +75,25 @@ class AskService:
         sql = sql.strip()
         if not sql:
             raise NoAnswer("Type a SQL query first.")
-        result = self.data.execute(sql)  # validates, then runs read-only with row and time limits
+        result = self.data.execute(
+            sql
+        )  # validates, then runs read-only with row and time limits
         try:
-            self.history.add(f"[SQL] {sql[:120]}", result["sql"], result["row_count"], "manual")
+            self.history.add(
+                f"[SQL] {sql[:120]}", result["sql"], result["row_count"], "manual"
+            )
         except UpstreamError:
             pass
         return {
-            "question": "", "sql": result["sql"], "explanation": "Ran your SQL.", "engine": "manual",
-            "attempts": 1, "chart": suggest_chart(result["columns"], result["rows"]),
-            "columns": result["columns"], "rows": result["rows"], "row_count": result["row_count"],
-            "truncated": result["truncated"], "elapsed_ms": result["elapsed_ms"],
+            "question": "",
+            "sql": result["sql"],
+            "explanation": "Ran your SQL.",
+            "engine": "manual",
+            "attempts": 1,
+            "chart": suggest_chart(result["columns"], result["rows"]),
+            "columns": result["columns"],
+            "rows": result["rows"],
+            "row_count": result["row_count"],
+            "truncated": result["truncated"],
+            "elapsed_ms": result["elapsed_ms"],
         }

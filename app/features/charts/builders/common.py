@@ -1,4 +1,5 @@
 """Helpers shared by every chart builder. Builders return plain Plotly figure dicts."""
+
 from __future__ import annotations
 
 import datetime as dt
@@ -8,7 +9,16 @@ from ..errors import ChartError
 from ..table import Table, fmt_label, parse_date
 
 # Okabe-Ito: distinguishable for the common kinds of colour-blindness.
-PALETTE = ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9", "#999999", "#F0E442"]
+PALETTE = [
+    "#0072B2",
+    "#E69F00",
+    "#009E73",
+    "#D55E00",
+    "#CC79A7",
+    "#56B4E9",
+    "#999999",
+    "#F0E442",
+]
 MAX_GROUPS = 30
 
 
@@ -56,7 +66,9 @@ def aggregate(values: list, how: str):
     nums = [v for v in values if v is not None]
     if not nums:
         return None
-    return {"sum": sum, "min": min, "max": max, "mean": lambda xs: sum(xs) / len(xs)}[how](nums)
+    return {"sum": sum, "min": min, "max": max, "mean": lambda xs: sum(xs) / len(xs)}[
+        how
+    ](nums)
 
 
 def x_order(t: Table, col: str, raws: list) -> list:
@@ -64,7 +76,11 @@ def x_order(t: Table, col: str, raws: list) -> list:
     present = [r for r in raws if r is not None]
     p = t.primary(col)
     if p == "date":
-        present.sort(key=lambda v: parse_date(v) or dt.datetime.min)
+        present.sort(
+            key=lambda v: (
+                parse_date(v) or dt.datetime.min.replace(tzinfo=dt.timezone.utc)
+            )
+        )
     elif p == "number":
         present.sort()
     return present + ([None] if None in raws else [])
@@ -87,7 +103,9 @@ def pivot(t: Table, x: str, ycols: list[str], group: list[str], how: str):
         g, y = t.values(group[0]), t.numbers(ycols[0])
         names = list(dict.fromkeys(fmt_label(v) for v in g))
         if len(names) > MAX_GROUPS:
-            raise ChartError(f"'{group[0]}' has {len(names)} distinct values; pick a column with at most {MAX_GROUPS}.")
+            raise ChartError(
+                f"'{group[0]}' has {len(names)} distinct values; pick a column with at most {MAX_GROUPS}."
+            )
         cells = {n: [[] for _ in keys] for n in names}
         for xv, gv, yv in zip(xs, g, y):
             cells[fmt_label(gv)][pos[xv]].append(yv)
@@ -110,7 +128,9 @@ def grid(t: Table, xc: str, yc: str, vc: str, how: str):
     xk = x_order(t, xc, list(dict.fromkeys(xv)))
     yk = x_order(t, yc, list(dict.fromkeys(yv)))
     if len(xk) > 200 or len(yk) > 200:
-        raise ChartError("Too many categories for a grid (limit 200 per axis); aggregate in SQL first.")
+        raise ChartError(
+            "Too many categories for a grid (limit 200 per axis); aggregate in SQL first."
+        )
     xi, yi = {k: i for i, k in enumerate(xk)}, {k: i for i, k in enumerate(yk)}
     cells: dict = {}
     for a, b, v in zip(xv, yv, nv):
@@ -137,7 +157,9 @@ def group_positions(t: Table, group: list[str], idx: list[int]) -> dict[str, lis
     for pos, i in enumerate(idx):
         out.setdefault(fmt_label(g[i]), []).append(pos)
     if len(out) > MAX_GROUPS:
-        raise ChartError(f"'{group[0]}' has {len(out)} distinct values; pick a column with at most {MAX_GROUPS}.")
+        raise ChartError(
+            f"'{group[0]}' has {len(out)} distinct values; pick a column with at most {MAX_GROUPS}."
+        )
     return out
 
 
@@ -147,6 +169,7 @@ def sort_labels(labels) -> list[str]:
             return (0, float(s), s)
         except ValueError:
             return (1, 0.0, s)
+
     return sorted(set(labels), key=key)
 
 
